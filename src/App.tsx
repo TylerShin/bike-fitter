@@ -7,37 +7,8 @@ import {
 } from "@tensorflow-models/body-pix";
 import { BodyPixInput } from "@tensorflow-models/body-pix/dist/types";
 import { ModelConfig } from "@tensorflow-models/body-pix/dist/body_pix_model";
-
-function calculateAngle(px: number, py: number, ax: number, ay: number) {
-  return Math.atan2(ay - py, ax - px) * 180 / Math.PI;
-}
-
-const rainbow = [
-  [110, 64, 170],
-  [106, 72, 183],
-  [100, 81, 196],
-  [92, 91, 206],
-  [84, 101, 214],
-  [75, 113, 221],
-  [66, 125, 224],
-  [56, 138, 226],
-  [48, 150, 224],
-  [40, 163, 220],
-  [33, 176, 214],
-  [29, 188, 205],
-  [26, 199, 194],
-  [26, 210, 182],
-  [28, 219, 169],
-  [33, 227, 155],
-  [41, 234, 141],
-  [51, 240, 128],
-  [64, 243, 116],
-  [79, 246, 105],
-  [96, 247, 97],
-  [115, 246, 91],
-  [134, 245, 88],
-  [155, 243, 88],
-];
+import { RAINBOW } from "./constants/colorSet";
+import { drawKeypoints, drawSkeleton, drawAngles } from "./utils/draw";
 
 function getModelConfig(): ModelConfig {
   if (isMobile(window.navigator).any) {
@@ -68,21 +39,17 @@ function App() {
   }
 
   useEffect(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+
     loadAndPredict(imgRef.current!).then((segmentation) => {
-      console.log("figured out segments");
-      console.log(segmentation);
-      const coloredPartImage = toColoredPartMask(
-        segmentation,
-        rainbow as [number, number, number][]
-      );
-      const opacity = 0.7;
+      const coloredPartImage = toColoredPartMask(segmentation, RAINBOW);
+      const opacity = 0.5;
       const flipHorizontal = false;
       const maskBlurAmount = 0;
       const pixelCellWidth = 5.0;
-      // Draw the pixelated colored part image on top of the original image onto a
-      // canvas.  Each pixel cell's width will be set to 10 px. The pixelated colored
-      // part image will be drawn semi-transparent, with an opacity of 0.7, allowing
-      // for the original image to be visible under.
+
       drawPixelatedMask(
         canvasRef.current!,
         imgRef.current!,
@@ -93,23 +60,11 @@ function App() {
         pixelCellWidth
       );
 
-      const rightHip = segmentation.allPoses[0].keypoints.find(
-        (point) => point.part === "rightHip"
-      );
-      const rightKnee = segmentation.allPoses[0].keypoints.find(
-        (point) => point.part === "rightKnee"
-      );
-      const rightAnkle = segmentation.allPoses[0].keypoints.find(
-        (point) => point.part === "rightAnkle"
-      );
-      console.log(
-        calculateAngle(
-          rightHip!.position.x,
-          rightHip!.position.y,
-          rightKnee!.position.x,
-          rightKnee!.position.y
-        )
-      );
+      if (segmentation.allPoses[0].keypoints) {
+        drawKeypoints(segmentation.allPoses[0].keypoints, 0.1, ctx);
+        drawSkeleton(segmentation.allPoses[0].keypoints, 0.1, ctx);
+        drawAngles(segmentation.allPoses[0].keypoints, 0.1, ctx);
+      }
     });
   }, []);
 
@@ -119,7 +74,7 @@ function App() {
       <canvas ref={canvasRef} id="canvas" />
       <img
         ref={imgRef}
-        src={`${process.env.PUBLIC_URL}/img/demo1.jpg`}
+        src={`${process.env.PUBLIC_URL}/img/demo6.jpg`}
         alt="demo"
         style={{ display: "none" }}
       />
