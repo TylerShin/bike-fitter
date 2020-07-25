@@ -14,12 +14,11 @@ function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!file || (!file.type.includes('image') && !file.type.includes('video'))) return;
     if (!canvasRef.current) return;
-
-    console.log(file.type);
 
     const ctx = canvasRef.current.getContext('2d');
     const opacity = 0.7;
@@ -51,6 +50,7 @@ function App() {
           drawSkeleton(segmentation.allPoses[0].keypoints, 0.1, ctx!);
           drawAngles(segmentation.allPoses[0].keypoints, 0.1, ctx!);
         }
+        setIsLoading(false);
       }
     }
 
@@ -87,6 +87,7 @@ function App() {
             drawAngles(segmentation.allPoses[0].keypoints, 0.1, ctx!);
           }
 
+          setIsLoading(false);
           requestAnimationFrame(segment);
         }
 
@@ -96,6 +97,8 @@ function App() {
       videoRef.current!.src = url;
     }
 
+    setIsLoading(true);
+    ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     if (file.type.includes('image')) {
       handleImage();
     } else {
@@ -112,6 +115,10 @@ function App() {
           Please upload your riding photo or video
         </label>
       </div>
+      {isLoading && (<div style={{ textAlign: 'center', margin: '32px 0', fontSize: '20px' }}>
+        <div className={s.loader} />
+        Processing media...it takes a while depends on your muchine power.
+      </div>)}
       <div>
         <canvas ref={canvasRef} id="canvas" />
       </div>
